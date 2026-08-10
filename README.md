@@ -122,50 +122,101 @@ source ~/stereo_nav_sim_ws/env.sh
 
 建图和导航是两个独立运行模式。必须先生成可用数据库，再停止建图模式并启动定位导航模式。
 
-### 1. 纯双目建图
+> 一次只能运行一个 `mapping.launch.py` 或 `navigation.launch.py`，否则会产生 TF authority 和话题发布冲突。
 
-终端 1：首次建图时创建新数据库。
+### 1. 启动并遥控小车建图
+
+终端 1：进入工作区并直接启动纯双目建图。首次建图使用 `new_map:=true`：
 
 ```bash
-source ~/stereo_nav_sim_ws/env.sh
+cd ~/stereo_nav_sim_ws
+source env.sh
 ros2 launch stereo_nav_bringup mapping.launch.py new_map:=true
 ```
 
-`new_map:=true` 会删除默认 RTAB-Map 数据库后重建，只在明确重新建图时使用。数据库位于 `~/.ros/stereo_nav/rtabmap.db`；以后续建应使用安全默认值：
+`new_map:=true` 会先删除 `~/.ros/stereo_nav/rtabmap.db`，只应在确定重新建图时使用。
+
+保持建图终端运行，另开一个 Ubuntu 终端，用较低的线速度和角速度遥控：
 
 ```bash
-ros2 launch stereo_nav_bringup mapping.launch.py new_map:=false
+cd ~/stereo_nav_sim_ws
+source env.sh
+
+ros2 run teleop_twist_keyboard teleop_twist_keyboard \
+  --ros-args -p speed:=0.20 -p turn:=0.60
 ```
 
-终端 2：键盘遥控小车缓慢走完整个环境并回到已走过的区域形成闭环。
+常用按键：
 
-```bash
-source ~/stereo_nav_sim_ws/env.sh
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
-```
+| 按键 | 动作 |
+|---|---|
+| `i` | 前进 |
+| `,` | 后退 |
+| `j` / `l` | 左转 / 右转 |
+| `k` | 立即停止 |
+| `u` / `o` | 前进并左转 / 右转 |
 
-纯视觉里程计不适合快速原地旋转。建议低速前进、缓慢转弯，让画面始终保留足够纹理。Gazebo 暂停后图像与仿真时钟都会停止，此时 RTAB-Map 的“no odometry is provided”提示是暂停造成的；恢复仿真后应继续收到图像和里程计。
+保持遥控终端处于焦点。尽量缓慢转弯，避免长时间快速原地旋转。建议行驶至少 20 米，经过房间、门洞和走廊，最后回到起点附近触发回环；RViz 中应看到 `/map` 逐渐扩展。
+
+如果 RViz 没有显示地图：
+
+1. 将 `Global Options → Fixed Frame` 设为 `map`。
+2. 点击 `Add → Map`，Topic 选择 `/map`。
+3. 点击 `Add → PointCloud2`，Topic 选择 `/stereo/points2`。
+4. 可添加两个 `Image`，分别选择 `/stereo/left/image_raw` 和 `/stereo/right/image_raw`，确认双目图像持续更新。
+
+纯视觉里程计不适合快速原地旋转。Gazebo 暂停后图像与仿真时钟都会停止，此时 RTAB-Map 的“no odometry is provided”提示是暂停造成的；恢复仿真后应继续收到图像和里程计。
 
 ### 2. 保存地图
 
-保持建图启动文件仍在运行，另开终端执行：
+建图完成后先保持建图程序运行，在另一个终端执行：
 
 ```bash
-source ~/stereo_nav_sim_ws/env.sh
 cd ~/stereo_nav_sim_ws
+source env.sh
 ./scripts/save_map.sh
 ```
 
-脚本把检查用的二维地图保存到 `~/.ros/stereo_nav/maps/indoor.yaml` 和 `.pgm`。定位的主数据仍是 `~/.ros/stereo_nav/rtabmap.db`。保存完成后按 `Ctrl+C` 停止建图模式。
+建图数据库和导出的二维地图位于：
 
-### 3. 启动定位与 Nav2
-
-```bash
-source ~/stereo_nav_sim_ws/env.sh
-ros2 launch stereo_nav_bringup navigation.launch.py moving_obstacle:=false
+```text
+~/.ros/stereo_nav/rtabmap.db
+~/.ros/stereo_nav/maps/indoor.yaml
+~/.ros/stereo_nav/maps/indoor.pgm
 ```
 
-等待 RTAB-Map 定位、Nav2 生命周期节点和代价地图就绪，然后检查：
+其中 RTAB-Map 在建图期间持续维护 `rtabmap.db`，`save_map.sh` 导出 `indoor.yaml` 和 `indoor.pgm`。保存成功后回到建图终端按 `Ctrl+C`，让 RTAB-Map 正常关闭数据库。
+
+以后继续已有地图时使用：
+
+```bash
+cd ~/stereo_nav_sim_ws
+source env.sh
+ros2 launch stereo_nav_bringup mapping.launch.py new_map:=false
+```
+
+不要再次使用 `new_map:=true`，否则旧数据库会被删除。
+
+### 3. 启动定位与自主导航
+
+确认建图进程已经停止，然后启动 RTAB-Map 定位模式和 Nav2：
+
+```bash
+cd ~/stereo_nav_sim_ws
+source env.sh
+
+ros2 launch stereo_nav_bringup navigation.launch.py \
+  moving_obstacle:=false
+```
+
+等待日志出现 `Managed nodes are active`。在 RViz 中：
+
+1. 等待已有地图出现，小车会在出生位置使用双目图像进行视觉重定位。
+2. 点击顶部的 `2D Goal Pose`。
+3. 在地图的白色空闲区域点击并拖动；箭头方向代表目标朝向。
+4. 松开鼠标后，Nav2 会向 `/navigate_to_pose` 发送目标、规划路径并控制小车行驶，不需要再点击其他按钮。
+
+也可以检查 Nav2 是否已经激活：
 
 ```bash
 ros2 action info /navigate_to_pose
@@ -173,19 +224,16 @@ ros2 lifecycle get /bt_navigator
 ros2 lifecycle get /controller_server
 ```
 
-动作接口应存在，两个生命周期节点应为 `active`。
+动作接口应存在，两个生命周期节点应为 `active`。正常情况下 RViz 会显示全局/局部路径，`/cmd_vel_nav` 会输出底盘速度命令。
 
-### 4. 在 RViz 发送目标
-
-1. 确认 RViz 顶部 `Fixed Frame` 是 `map`。
-2. 点击工具栏中的 `2D Goal Pose`。
-3. 在地图白色可通行区域按下鼠标，拖动箭头设置车头方向，然后松开。
-4. 松开鼠标就会立即发送 `/navigate_to_pose`，不需要再点“开始”。
-
-正常情况下 RViz 会出现全局/局部路径，小车通过 `/cmd_vel_nav` 自动行驶。动态障碍测试时先停止当前导航，再改为：
+基础导航成功后，先按 `Ctrl+C` 停止当前导航，再启动移动障碍测试：
 
 ```bash
-ros2 launch stereo_nav_bringup navigation.launch.py moving_obstacle:=true
+cd ~/stereo_nav_sim_ws
+source env.sh
+
+ros2 launch stereo_nav_bringup navigation.launch.py \
+  moving_obstacle:=true
 ```
 
 ## 启动入口
