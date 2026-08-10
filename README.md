@@ -23,7 +23,7 @@ flowchart LR
 - `stereo_nav_bringup`：RTAB-Map 双目里程计、建图/定位、点云和 Nav2 启动配置。
 - `stereo_nav_tests`：接口审计、轨迹精度、无 GUI 冒烟测试和导航验收。
 
-## 为什么仓库里没有 RTAB-Map 和 Nav2 源码
+## RTAB-Map 和 Nav2
 
 这两个项目以 ROS 2 Humble 官方二进制包的形式安装，不复制源码、不使用 Git submodule：
 
@@ -52,45 +52,7 @@ ros2 pkg prefix nav2_controller
 
 这些命令应输出 `/opt/ros/humble`。RTAB-Map ROS 2 和 Nav2 的上游说明分别见 [rtabmap_ros](https://github.com/introlab/rtabmap_ros) 与 [Nav2 Getting Started](https://docs.nav2.org/getting_started/index.html)。
 
-## 在 Ubuntu 22.04 上从零安装
-
-### 1. 检查系统与显卡
-
-项目固定使用原生 Ubuntu 22.04（Jammy）和 NVIDIA GPU：
-
-```bash
-lsb_release -a
-nvidia-smi
-```
-
-如果 `nvidia-smi` 失败，先用 Ubuntu 的“附加驱动”安装推荐的 NVIDIA 驱动并重启。安装脚本检测到 Ubuntu 版本、NVIDIA 驱动、OpenGL 或 Gazebo Fortress 不匹配时会停止，不会升级操作系统或修改 `.bashrc`。
-
-### 2. 配置 locale 和 Ubuntu Universe
-
-```bash
-sudo apt update
-sudo apt install -y locales software-properties-common curl git
-sudo locale-gen en_US en_US.UTF-8
-sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-export LANG=en_US.UTF-8
-sudo add-apt-repository universe
-```
-
-### 3. 添加 ROS 2 apt 软件源
-
-使用 ROS 官方发布的 `ros2-apt-source` 配置软件源：
-
-```bash
-export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
-curl -L -o /tmp/ros2-apt-source.deb \
-  "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
-sudo dpkg -i /tmp/ros2-apt-source.deb
-sudo apt update
-```
-
-如果已经能正常执行 `apt-cache policy ros-humble-desktop` 并看到候选版本，可以跳过这一步。ROS 2 Humble 的平台与安装说明见 [ROS 2 Humble 文档](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)。
-
-### 4. 克隆并执行项目安装脚本
+## 安装
 
 ```bash
 cd ~
