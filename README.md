@@ -1,70 +1,206 @@
 # ROS 2 Humble 纯双目室内小车 SLAM 导航仿真
 
-这是一个独立的 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress 工作区。定位、建图和避障只使用左右相机；Gazebo 差速里程计仅桥接为 `/ground_truth/odom`，供验收程序比较，不进入 RTAB-Map、Nav2 或 TF 树。
+基于 **Ubuntu 22.04、ROS 2 Humble、Gazebo Fortress、RTAB-Map 和 Nav2** 的室内差速小车仿真项目。定位、建图和实时避障只使用左右相机；Gazebo 真值里程计只供测试程序计算误差，不进入 SLAM、Nav2 或 TF 树。
 
-## 组件
+## 系统链路
 
-- `stereo_nav_description`：差速小车 URDF 与 REP-103 光学坐标系。
-- `stereo_nav_gazebo`：Gazebo 模型、双目相机、带局部视觉特征的室内世界和显式 bridge。
-- `stereo_nav_bringup`：RTAB-Map 双目视觉里程计、建图/定位、点云和 Nav2。
-- `stereo_nav_tests`：离线配置契约、运行时接口、轨迹精度和五目标导航验收。
-
-## 安装与构建
-
-目标系统必须是原生 Ubuntu 22.04。安装脚本发现系统版本、ROS overlay、NVIDIA、OpenGL 或 Gazebo Fortress 不匹配时会停止，不会升级操作系统，也不会修改 `.bashrc`。
-
-如果当前副本在 Windows 共享盘，先复制到 Ubuntu 文件系统：
-
-```bash
-cp -a /mnt/e/Code/ROV\ DataRos2/stereo_nav_sim_ws ~/stereo_nav_sim_ws
-cd ~/stereo_nav_sim_ws
-chmod +x setup_project.sh env.sh scripts/*.sh
-./setup_project.sh
-source env.sh
+```mermaid
+flowchart LR
+  GZ["Gazebo Fortress<br/>双目相机 + 差速底盘"] -->|左右图像 / CameraInfo| BR["ros_gz_bridge"]
+  BR --> VO["RTAB-Map<br/>stereo_odometry"]
+  VO -->|"/odom + odom → base_link"| SLAM["RTAB-Map<br/>建图 / 定位"]
+  SLAM -->|"/map + map → odom"| NAV["Nav2<br/>NavFn + RPP"]
+  BR --> PC["point_cloud_xyzrgb"]
+  PC -->|/stereo/points2| NAV
+  NAV -->|/cmd_vel_nav → /cmd_vel| GZ
+  GZ -.->|/ground_truth/odom 仅测试| TEST["验收工具"]
 ```
 
-无显示器的主机使用：
+项目包含四个 ROS 2 包：
+
+- `stereo_nav_description`：差速小车 URDF、车轮和 REP-103 双目光学坐标系。
+- `stereo_nav_gazebo`：Gazebo 世界、机器人模型、双目相机和显式 bridge 配置。
+- `stereo_nav_bringup`：RTAB-Map 双目里程计、建图/定位、点云和 Nav2 启动配置。
+- `stereo_nav_tests`：接口审计、轨迹精度、无 GUI 冒烟测试和导航验收。
+
+## 为什么仓库里没有 RTAB-Map 和 Nav2 源码
+
+这两个项目以 ROS 2 Humble 官方二进制包的形式安装，不复制源码、不使用 Git submodule：
+
+| 功能 | Ubuntu 软件包 | 安装位置 | 本仓库的接入位置 |
+|---|---|---|---|
+| RTAB-Map 双目里程计与 SLAM | `ros-humble-rtabmap-ros` | `/opt/ros/humble` | `stereo_slam.launch.py` |
+| Nav2 导航栈 | `ros-humble-navigation2`、`ros-humble-nav2-bringup` | `/opt/ros/humble` | `navigation.launch.py`、`nav2.yaml` |
+| Gazebo 与 ROS 2 通信 | `ros-humble-ros-gz` | `/opt/ros/humble` | `bridge.yaml` |
+
+具体接入点如下：
+
+- [`stereo_slam.launch.py`](src/stereo_nav_bringup/launch/stereo_slam.launch.py) 启动 `rtabmap_odom/stereo_odometry`、`rtabmap_slam/rtabmap` 和 `rtabmap_util/point_cloud_xyzrgb`。
+- [`navigation.launch.py`](src/stereo_nav_bringup/launch/navigation.launch.py) 加载 ROS 安装目录中的 `nav2_bringup/launch/navigation_launch.py`。
+- [`nav2.yaml`](src/stereo_nav_bringup/config/nav2.yaml) 配置 NavFn、Regulated Pure Pursuit、全局静态层和使用 `/stereo/points2` 的局部 Voxel Layer。
+- [`package.xml`](src/stereo_nav_bringup/package.xml) 声明 RTAB-Map、Nav2 的运行依赖；[`setup_project.sh`](setup_project.sh) 负责用 apt 安装它们。
+
+安装后可以这样确认：
+
+```bash
+source /opt/ros/humble/setup.bash
+ros2 pkg prefix rtabmap_odom
+ros2 pkg prefix rtabmap_slam
+ros2 pkg prefix nav2_bringup
+ros2 pkg prefix nav2_controller
+```
+
+这些命令应输出 `/opt/ros/humble`。RTAB-Map ROS 2 和 Nav2 的上游说明分别见 [rtabmap_ros](https://github.com/introlab/rtabmap_ros) 与 [Nav2 Getting Started](https://docs.nav2.org/getting_started/index.html)。
+
+## 在 Ubuntu 22.04 上从零安装
+
+### 1. 检查系统与显卡
+
+项目固定使用原生 Ubuntu 22.04（Jammy）和 NVIDIA GPU：
+
+```bash
+lsb_release -a
+nvidia-smi
+```
+
+如果 `nvidia-smi` 失败，先用 Ubuntu 的“附加驱动”安装推荐的 NVIDIA 驱动并重启。安装脚本检测到 Ubuntu 版本、NVIDIA 驱动、OpenGL 或 Gazebo Fortress 不匹配时会停止，不会升级操作系统或修改 `.bashrc`。
+
+### 2. 配置 locale 和 Ubuntu Universe
+
+```bash
+sudo apt update
+sudo apt install -y locales software-properties-common curl git
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+sudo add-apt-repository universe
+```
+
+### 3. 添加 ROS 2 apt 软件源
+
+使用 ROS 官方发布的 `ros2-apt-source` 配置软件源：
+
+```bash
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+curl -L -o /tmp/ros2-apt-source.deb \
+  "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+sudo dpkg -i /tmp/ros2-apt-source.deb
+sudo apt update
+```
+
+如果已经能正常执行 `apt-cache policy ros-humble-desktop` 并看到候选版本，可以跳过这一步。ROS 2 Humble 的平台与安装说明见 [ROS 2 Humble 文档](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)。
+
+### 4. 克隆并执行项目安装脚本
+
+```bash
+cd ~
+git clone https://github.com/Nekonlaa/stereo_nav_sim_ws.git
+cd ~/stereo_nav_sim_ws
+./setup_project.sh
+source ~/stereo_nav_sim_ws/env.sh
+```
+
+`setup_project.sh` 会安装 ROS 2 Desktop、Gazebo/ROS bridge、RTAB-Map、Nav2、RViz、colcon、rosdep 和测试依赖，然后执行 `rosdep install`、`colcon build` 与 `colcon test`。ROS 2 Humble 与 Gazebo Fortress 是官方推荐组合，`ros-humble-ros-gz` 会安装匹配的 Gazebo 版本，详见 [Gazebo Fortress 的 ROS 安装说明](https://gazebosim.org/docs/fortress/ros_installation/)。
+
+没有显示器的 Ubuntu 主机使用：
 
 ```bash
 STEREO_NAV_HEADLESS=1 ./setup_project.sh
 ```
 
-项目环境固定为 `ROS_DOMAIN_ID=42`、`ROS_LOCALHOST_ONLY=1`，只在 `source env.sh` 的终端生效。
-
-## 三个入口
-
-仅启动仿真、bridge 和机器人：
+安装完成后，每个新终端都先运行：
 
 ```bash
-ros2 launch stereo_nav_bringup sim.launch.py gui:=true rviz:=true
+source ~/stereo_nav_sim_ws/env.sh
 ```
 
-另开终端遥控：
+该脚本只为当前终端设置 `ROS_DOMAIN_ID=42` 和 `ROS_LOCALHOST_ONLY=1`，不会改动全局 shell 配置。
+
+> `rosdep init` 只需要在整台 Ubuntu 主机上执行一次，它创建系统依赖规则的源列表；之后的 `rosdep update` 下载规则，`rosdep install` 根据各包的 `package.xml` 补齐依赖。若 `rosdep update` 对 `raw.githubusercontent.com` 报 `Connection refused`，这是网络访问失败，不表示 RTAB-Map 或 Nav2 缺失。修复该主机的 GitHub 网络访问后重新运行 `./setup_project.sh`。
+
+## 建图、保存与自主导航
+
+建图和导航是两个独立运行模式。必须先生成可用数据库，再停止建图模式并启动定位导航模式。
+
+### 1. 纯双目建图
+
+终端 1：首次建图时创建新数据库。
+
+```bash
+source ~/stereo_nav_sim_ws/env.sh
+ros2 launch stereo_nav_bringup mapping.launch.py new_map:=true
+```
+
+`new_map:=true` 会删除默认 RTAB-Map 数据库后重建，只在明确重新建图时使用。数据库位于 `~/.ros/stereo_nav/rtabmap.db`；以后续建应使用安全默认值：
+
+```bash
+ros2 launch stereo_nav_bringup mapping.launch.py new_map:=false
+```
+
+终端 2：键盘遥控小车缓慢走完整个环境并回到已走过的区域形成闭环。
 
 ```bash
 source ~/stereo_nav_sim_ws/env.sh
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
-纯双目建图。`new_map:=false` 是安全默认值，会续写已有数据库；仅在明确重建时显式删除：
+纯视觉里程计不适合快速原地旋转。建议低速前进、缓慢转弯，让画面始终保留足够纹理。Gazebo 暂停后图像与仿真时钟都会停止，此时 RTAB-Map 的“no odometry is provided”提示是暂停造成的；恢复仿真后应继续收到图像和里程计。
+
+### 2. 保存地图
+
+保持建图启动文件仍在运行，另开终端执行：
 
 ```bash
-ros2 launch stereo_nav_bringup mapping.launch.py new_map:=true
-```
-
-数据库实时写入 `~/.ros/stereo_nav/rtabmap.db`。闭环完成后导出二维快照：
-
-```bash
+source ~/stereo_nav_sim_ws/env.sh
+cd ~/stereo_nav_sim_ws
 ./scripts/save_map.sh
 ```
 
-加载同一数据库，以 `Mem/IncrementalMemory=false` 定位并运行 Nav2：
+脚本把检查用的二维地图保存到 `~/.ros/stereo_nav/maps/indoor.yaml` 和 `.pgm`。定位的主数据仍是 `~/.ros/stereo_nav/rtabmap.db`。保存完成后按 `Ctrl+C` 停止建图模式。
+
+### 3. 启动定位与 Nav2
 
 ```bash
+source ~/stereo_nav_sim_ws/env.sh
 ros2 launch stereo_nav_bringup navigation.launch.py moving_obstacle:=false
 ```
 
-动态障碍验收时改成 `moving_obstacle:=true`。随后可在 RViz 使用 `2D Goal Pose` 或调用 `/navigate_to_pose`。
+等待 RTAB-Map 定位、Nav2 生命周期节点和代价地图就绪，然后检查：
+
+```bash
+ros2 action info /navigate_to_pose
+ros2 lifecycle get /bt_navigator
+ros2 lifecycle get /controller_server
+```
+
+动作接口应存在，两个生命周期节点应为 `active`。
+
+### 4. 在 RViz 发送目标
+
+1. 确认 RViz 顶部 `Fixed Frame` 是 `map`。
+2. 点击工具栏中的 `2D Goal Pose`。
+3. 在地图白色可通行区域按下鼠标，拖动箭头设置车头方向，然后松开。
+4. 松开鼠标就会立即发送 `/navigate_to_pose`，不需要再点“开始”。
+
+正常情况下 RViz 会出现全局/局部路径，小车通过 `/cmd_vel_nav` 自动行驶。动态障碍测试时先停止当前导航，再改为：
+
+```bash
+ros2 launch stereo_nav_bringup navigation.launch.py moving_obstacle:=true
+```
+
+## 启动入口
+
+| 入口 | 用途 | 是否启动 RTAB-Map | 是否启动 Nav2 |
+|---|---|---:|---:|
+| `sim.launch.py` | 仅仿真、bridge、机器人和 RViz | 否 | 否 |
+| `mapping.launch.py` | 双目视觉里程计与增量建图 | 是，建图模式 | 否 |
+| `navigation.launch.py` | 加载数据库定位并自主导航 | 是，定位模式 | 是 |
+
+仅查看仿真：
+
+```bash
+ros2 launch stereo_nav_bringup sim.launch.py gui:=true rviz:=true
+```
 
 ## 关键接口
 
@@ -74,58 +210,107 @@ ros2 launch stereo_nav_bringup navigation.launch.py moving_obstacle:=false
 | `/stereo/right/image_raw`、`camera_info` | Gazebo bridge | 右目，`P[3] = -38.4` |
 | `/odom`、`odom → base_link` | RTAB-Map stereo odometry | 唯一运行里程计 |
 | `/map`、`map → odom` | RTAB-Map SLAM | 二维栅格和全局定位 |
-| `/stereo/points2` | RTAB-Map utility | Nav2 局部 Voxel Layer 唯一实时障碍输入 |
+| `/stereo/points2` | RTAB-Map utility | Nav2 局部 Voxel Layer 的实时障碍输入 |
 | `/ground_truth/odom` | Gazebo | 只允许验收工具订阅，不发布 TF |
-| `/cmd_vel_nav → /cmd_vel` | Nav2 controller / velocity smoother | 0.8 秒命令超时，最大 0.30 m/s、1.0 rad/s |
+| `/navigate_to_pose` | Nav2 | 自主导航动作接口 |
+| `/cmd_vel_nav → /cmd_vel` | Nav2 / 速度适配 | 最大 0.30 m/s、1.0 rad/s |
 
-Gazebo 没有激光或 IMU，差速插件的 TF 话题也不桥接。RTAB-Map 二进制内部固定创建的可选 IMU/GPS/标志订阅被隔离到 `/_stereo_nav_disabled/*`；这些话题没有发布者，真实 `/imu`、`/scan`、轮速和真值数据不会进入算法。
+Gazebo 模型没有激光或 IMU，差速插件的 TF 也不桥接。真实 `/imu`、`/scan`、轮速和真值数据不会进入 RTAB-Map 或 Nav2。
 
-## 验证
+## 常见问题
 
-离线配置契约会随构建执行：
+### RViz 设置目标后小车不动
+
+最常见原因是只启动了 `mapping.launch.py` 或 `sim.launch.py`；它们不启动 Nav2。应停止当前模式，再启动 `navigation.launch.py`。然后检查：
 
 ```bash
+ros2 action list | grep navigate_to_pose
+ros2 node list | grep -E 'bt_navigator|planner_server|controller_server'
+ros2 topic echo /cmd_vel_nav --once
+ros2 run tf2_ros tf2_echo map base_link
+```
+
+还要确认目标位于地图白色自由区域，而不是黑色障碍、灰色未知区或膨胀层内。
+
+### RViz 建图停止，终端出现 `quality=0`
+
+`quality=0` 表示当前双目帧没有足够特征完成视觉匹配。先确认 Gazebo 没有暂停，再降低速度，避免快速旋转并驶回纹理丰富、曾经到达的区域。若图像、`/odom` 或 TF 已停止更新，可用以下命令定位断点：
+
+```bash
+ros2 topic hz /stereo/left/image_raw
+ros2 topic hz /stereo/right/image_raw
+ros2 topic hz /odom
+ros2 run tf2_ros tf2_echo odom base_link
+```
+
+### 提示 `Package ... not found`
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/stereo_nav_sim_ws/install/setup.bash
+```
+
+若仍缺少 RTAB-Map 或 Nav2，检查二进制包：
+
+```bash
+dpkg -l | grep -E 'ros-humble-(rtabmap-ros|navigation2|nav2-bringup)'
+sudo apt install ros-humble-rtabmap-ros ros-humble-navigation2 ros-humble-nav2-bringup
+```
+
+## 测试与验收
+
+构建和离线配置测试：
+
+```bash
+cd ~/stereo_nav_sim_ws
+source env.sh
 colcon test
 colcon test-result --verbose
 ```
 
-完整无 GUI 冒烟测试会创建临时数据库，不触碰正式地图：
+建图与特征路线的无 GUI 集成测试会使用临时数据库，不触碰正式地图：
 
 ```bash
 ./scripts/headless_smoke_test.sh
+./scripts/feature_route_smoke_test.sh
 ```
 
-仿真运行时检查 30 Hz 图像、3 ms 同步、标定、10 Hz 点云、topic/TF 发布者和禁用输入：
+导航冒烟测试需要已有 RTAB-Map 数据库，默认读取正式数据库，也可以把数据库路径作为第一个参数传入：
+
+```bash
+./scripts/navigation_smoke_test.sh
+./scripts/navigation_smoke_test.sh /path/to/rtabmap.db
+```
+
+仿真运行时审计图像频率、双目同步、标定、点云、TF 发布者和禁用输入：
 
 ```bash
 ros2 run stereo_nav_tests runtime_audit --duration 20
 ```
 
-遥控不少于 20 m 闭环时评估视觉轨迹：
+遥控完成不少于 20 m 的闭环路线时评估视觉轨迹：
 
 ```bash
 ros2 run stereo_nav_tests trajectory_evaluator \
   --duration 180 --minimum-distance 20 --rmse-limit 0.30 --final-limit 0.25
 ```
 
-在已完整建图的数据库上启动定位和 Nav2，再执行五个跨房间目标：
+在完整数据库上执行五目标导航验收：
 
 ```bash
 ros2 run stereo_nav_tests navigation_acceptance \
   --goal-timeout 120 --position-limit 0.25
 ```
 
-最后用 `moving_obstacle:=true` 重复导航，并执行 15 分钟无 GUI 稳定性检查：
-
-```bash
-./scripts/headless_smoke_test.sh 900
-```
-
-确认局部点云能触发停车/绕行，且没有 TF authority 冲突、持续同步警告或节点退出。
+参考特征路线曾达到 11.06 m、有效视觉里程计 100%、ATE RMSE 0.015 m、闭环终点误差 0.028 m。实际结果受 GPU、实时率和遥控轨迹影响。
 
 ## 设计边界
 
-- 工程针对 Gazebo Fortress（Gazebo Sim 6）和 ROS 2 Humble API，不安装或使用 Gazebo Classic。
-- 仿真图像零畸变、共面，直接视为已校正；真实相机不能复用这里的 `CameraInfo`。
-- 纯视觉在低纹理、单侧遮挡和快速旋转时可能失跟。Nav2 的速度限制与 1 秒命令超时用于让失跟后底盘停止，不会回退到真值、轮速、IMU 或激光定位。
-- 五目标验收坐标对应本项目固定出生点与完整室内地图；修改出生点或世界后需要同步更新验收目标。
+- 工程针对 Gazebo Fortress（Gazebo Sim 6）和 ROS 2 Humble，不安装或使用 Gazebo Classic。
+- 仿真双目图像零畸变、共面，直接视为已校正；真实相机不能复用这里的 `CameraInfo`。
+- 纯视觉在低纹理、单侧遮挡和快速运动时可能失跟；系统不会回退到真值、轮速、IMU 或激光定位。
+- 五目标验收坐标对应项目内的固定出生点与室内世界；修改出生点或世界后需要同步更新目标。
+
+## License
+
+[Apache-2.0](LICENSE)
