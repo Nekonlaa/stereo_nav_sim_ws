@@ -1,0 +1,272 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="indoor_stereo">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics"/>
+    <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
+    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
+    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <scene>
+      <ambient>0.55 0.55 0.55 1</ambient>
+      <background>0.08 0.10 0.14 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 8 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation><range>100</range><constant>0.9</constant><linear>0.01</linear><quadratic>0.001</quadratic></attenuation>
+      <direction>-0.4 0.2 -1.0</direction>
+    </light>
+
+    <model name="indoor_architecture">
+      <static>true</static>
+      <link name="architecture">
+        <collision name="floor_collision">
+          <pose>0 0 -0.05 0 0 0</pose>
+          <geometry><box><size>12 10 0.1</size></box></geometry>
+        </collision>
+        <visual name="floor_visual">
+          <pose>0 0 -0.05 0 0 0</pose>
+          <geometry><box><size>12 10 0.1</size></box></geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+            <pbr>
+              <metal>
+                <albedo_map>../materials/textures/indoor_floor.png</albedo_map>
+                <metalness>0.0</metalness>
+                <roughness>0.95</roughness>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+
+        <!-- Outer boundary. -->
+        <collision name="north_wall_collision"><pose>0 5 1.25 0 0 0</pose><geometry><box><size>12 0.12 2.5</size></box></geometry></collision>
+        <visual name="north_wall_visual"><pose>0 5 1.25 0 0 0</pose><geometry><box><size>12 0.12 2.5</size></box></geometry><material><ambient>0.72 0.76 0.82 1</ambient><diffuse>0.72 0.76 0.82 1</diffuse></material></visual>
+        <collision name="south_wall_collision"><pose>0 -5 1.25 0 0 0</pose><geometry><box><size>12 0.12 2.5</size></box></geometry></collision>
+        <visual name="south_wall_visual"><pose>0 -5 1.25 0 0 0</pose><geometry><box><size>12 0.12 2.5</size></box></geometry><material><ambient>0.76 0.72 0.66 1</ambient><diffuse>0.76 0.72 0.66 1</diffuse></material></visual>
+        <collision name="east_wall_collision"><pose>6 0 1.25 0 0 0</pose><geometry><box><size>0.12 10 2.5</size></box></geometry></collision>
+        <visual name="east_wall_visual"><pose>6 0 1.25 0 0 0</pose><geometry><box><size>0.12 10 2.5</size></box></geometry><material><ambient>0.68 0.75 0.68 1</ambient><diffuse>0.68 0.75 0.68 1</diffuse></material></visual>
+        <collision name="west_wall_collision"><pose>-6 0 1.25 0 0 0</pose><geometry><box><size>0.12 10 2.5</size></box></geometry></collision>
+        <visual name="west_wall_visual"><pose>-6 0 1.25 0 0 0</pose><geometry><box><size>0.12 10 2.5</size></box></geometry><material><ambient>0.72 0.68 0.75 1</ambient><diffuse>0.72 0.68 0.75 1</diffuse></material></visual>
+
+        <!-- Internal wall x=0, with a 1.1 m door between y=-1.0 and y=0.1. -->
+        <collision name="center_wall_south_collision"><pose>0 -3.0 1.25 0 0 0</pose><geometry><box><size>0.12 4.0 2.5</size></box></geometry></collision>
+        <visual name="center_wall_south_visual"><pose>0 -3.0 1.25 0 0 0</pose><geometry><box><size>0.12 4.0 2.5</size></box></geometry><material><ambient>0.82 0.78 0.65 1</ambient><diffuse>0.82 0.78 0.65 1</diffuse></material></visual>
+        <collision name="center_wall_north_collision"><pose>0 2.55 1.25 0 0 0</pose><geometry><box><size>0.12 4.9 2.5</size></box></geometry></collision>
+        <visual name="center_wall_north_visual"><pose>0 2.55 1.25 0 0 0</pose><geometry><box><size>0.12 4.9 2.5</size></box></geometry><material><ambient>0.82 0.78 0.65 1</ambient><diffuse>0.82 0.78 0.65 1</diffuse></material></visual>
+
+        <!-- Horizontal partition in the east half, with a 1.2 m doorway. -->
+        <collision name="east_partition_west_collision"><pose>1.45 1.5 1.25 0 0 0</pose><geometry><box><size>2.9 0.12 2.5</size></box></geometry></collision>
+        <visual name="east_partition_west_visual"><pose>1.45 1.5 1.25 0 0 0</pose><geometry><box><size>2.9 0.12 2.5</size></box></geometry><material><ambient>0.64 0.76 0.80 1</ambient><diffuse>0.64 0.76 0.80 1</diffuse></material></visual>
+        <collision name="east_partition_east_collision"><pose>5.0 1.5 1.25 0 0 0</pose><geometry><box><size>2.0 0.12 2.5</size></box></geometry></collision>
+        <visual name="east_partition_east_visual"><pose>5.0 1.5 1.25 0 0 0</pose><geometry><box><size>2.0 0.12 2.5</size></box></geometry><material><ambient>0.64 0.76 0.80 1</ambient><diffuse>0.64 0.76 0.80 1</diffuse></material></visual>
+
+        <!-- Floor bands produce trackable, non-repeating corners without external assets. -->
+        <visual name="floor_band_1"><pose>-3.5 -1.2 0.006 0 0 0.25</pose><geometry><box><size>1.6 0.06 0.012</size></box></geometry><material><ambient>0.12 0.12 0.14 1</ambient><diffuse>0.12 0.12 0.14 1</diffuse></material></visual>
+        <visual name="floor_band_2"><pose>-1.8 3.1 0.006 0 0 -0.4</pose><geometry><box><size>1.1 0.08 0.012</size></box></geometry><material><ambient>0.16 0.26 0.55 1</ambient><diffuse>0.16 0.26 0.55 1</diffuse></material></visual>
+        <visual name="floor_band_3"><pose>2.5 -3.5 0.006 0 0 0.7</pose><geometry><box><size>1.8 0.05 0.012</size></box></geometry><material><ambient>0.62 0.12 0.10 1</ambient><diffuse>0.62 0.12 0.10 1</diffuse></material></visual>
+        <visual name="floor_band_4"><pose>4.5 3.4 0.006 0 0 -0.3</pose><geometry><box><size>1.3 0.07 0.012</size></box></geometry><material><ambient>0.12 0.46 0.22 1</ambient><diffuse>0.12 0.46 0.22 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- High-contrast geometric feature panels. Each panel has a unique layout. -->
+    <model name="feature_panels">
+      <static>true</static>
+      <link name="panels">
+        <visual name="panel_north_red"><pose>-4.2 4.925 1.25 0 0 0</pose><geometry><box><size>0.75 0.025 0.75</size></box></geometry><material><ambient>0.70 0.06 0.05 1</ambient><diffuse>0.70 0.06 0.05 1</diffuse></material></visual>
+        <visual name="panel_north_black_1"><pose>-4.35 4.908 1.37 0 0 0</pose><geometry><box><size>0.12 0.025 0.32</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+        <visual name="panel_north_white_1"><pose>-4.05 4.908 1.08 0 0 0</pose><geometry><box><size>0.28 0.025 0.12</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+
+        <visual name="panel_north_blue"><pose>-1.8 4.925 1.40 0 0 0</pose><geometry><box><size>0.62 0.025 0.92</size></box></geometry><material><ambient>0.06 0.18 0.72 1</ambient><diffuse>0.06 0.18 0.72 1</diffuse></material></visual>
+        <visual name="panel_north_white_2"><pose>-1.92 4.908 1.58 0 0 0</pose><geometry><box><size>0.18 0.025 0.18</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="panel_north_black_2"><pose>-1.65 4.908 1.18 0 0 0</pose><geometry><box><size>0.17 0.025 0.36</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+
+        <visual name="panel_south_green"><pose>2.8 -4.925 1.30 0 0 0</pose><geometry><box><size>0.85 0.025 0.65</size></box></geometry><material><ambient>0.04 0.56 0.18 1</ambient><diffuse>0.04 0.56 0.18 1</diffuse></material></visual>
+        <visual name="panel_south_black_1"><pose>2.60 -4.908 1.43 0 0 0</pose><geometry><box><size>0.22 0.025 0.16</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+        <visual name="panel_south_white_1"><pose>3.04 -4.908 1.17 0 0 0</pose><geometry><box><size>0.15 0.025 0.28</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+
+        <visual name="panel_west_orange"><pose>-5.925 1.8 1.35 0 0 0</pose><geometry><box><size>0.025 0.72 0.72</size></box></geometry><material><ambient>0.88 0.32 0.04 1</ambient><diffuse>0.88 0.32 0.04 1</diffuse></material></visual>
+        <visual name="panel_west_black"><pose>-5.908 1.62 1.48 0 0 0</pose><geometry><box><size>0.025 0.16 0.30</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+        <visual name="panel_west_white"><pose>-5.908 1.98 1.18 0 0 0</pose><geometry><box><size>0.025 0.26 0.13</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+
+        <visual name="panel_east_magenta"><pose>5.925 -1.2 1.28 0 0 0</pose><geometry><box><size>0.025 0.68 0.82</size></box></geometry><material><ambient>0.64 0.05 0.52 1</ambient><diffuse>0.64 0.05 0.52 1</diffuse></material></visual>
+        <visual name="panel_east_black"><pose>5.908 -1.38 1.42 0 0 0</pose><geometry><box><size>0.025 0.20 0.20</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+        <visual name="panel_east_white"><pose>5.908 -1.03 1.12 0 0 0</pose><geometry><box><size>0.025 0.13 0.33</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- Dense, asymmetric features in the initial camera view.  These are
+         visual-only so they improve stereo initialization without changing
+         collision geometry or providing a non-visual navigation signal. -->
+    <model name="start_feature_board">
+      <static>true</static>
+      <link name="board">
+        <visual name="background">
+          <pose>-0.072 -3.0 1.15 0 0 0</pose>
+          <geometry><box><size>0.018 3.2 1.9</size></box></geometry>
+          <material><ambient>0.025 0.025 0.025 1</ambient><diffuse>0.025 0.025 0.025 1</diffuse></material>
+        </visual>
+        <visual name="tile_01"><pose>-0.086 -4.18 1.38 0 0 0</pose><geometry><box><size>0.010 0.18 0.66</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="tile_02"><pose>-0.086 -3.82 1.78 0 0 0</pose><geometry><box><size>0.010 0.46 0.14</size></box></geometry><material><ambient>0.70 0.70 0.70 1</ambient><diffuse>0.70 0.70 0.70 1</diffuse></material></visual>
+        <visual name="tile_03"><pose>-0.086 -3.72 1.18 0 0 0</pose><geometry><box><size>0.010 0.26 0.22</size></box></geometry><material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+        <visual name="tile_04"><pose>-0.086 -3.46 0.54 0 0 0</pose><geometry><box><size>0.010 0.13 0.42</size></box></geometry><material><ambient>0.58 0.58 0.58 1</ambient><diffuse>0.58 0.58 0.58 1</diffuse></material></visual>
+        <visual name="tile_05"><pose>-0.086 -3.27 1.48 0 0 0</pose><geometry><box><size>0.010 0.34 0.19</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+        <visual name="tile_06"><pose>-0.086 -3.05 0.88 0 0 0</pose><geometry><box><size>0.010 0.17 0.17</size></box></geometry><material><ambient>0.68 0.68 0.68 1</ambient><diffuse>0.68 0.68 0.68 1</diffuse></material></visual>
+        <visual name="tile_07"><pose>-0.086 -2.78 1.90 0 0 0</pose><geometry><box><size>0.010 0.16 0.34</size></box></geometry><material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+        <visual name="tile_08"><pose>-0.086 -2.58 1.20 0 0 0</pose><geometry><box><size>0.010 0.38 0.12</size></box></geometry><material><ambient>0.55 0.55 0.55 1</ambient><diffuse>0.55 0.55 0.55 1</diffuse></material></visual>
+        <visual name="tile_09"><pose>-0.086 -2.34 0.62 0 0 0</pose><geometry><box><size>0.010 0.22 0.28</size></box></geometry><material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+        <visual name="tile_10"><pose>-0.086 -2.08 1.55 0 0 0</pose><geometry><box><size>0.010 0.12 0.54</size></box></geometry><material><ambient>0.62 0.62 0.62 1</ambient><diffuse>0.62 0.62 0.62 1</diffuse></material></visual>
+        <visual name="tile_11"><pose>-0.086 -3.98 0.66 0 0 0</pose><geometry><box><size>0.010 0.31 0.13</size></box></geometry><material><ambient>0.78 0.78 0.78 1</ambient><diffuse>0.78 0.78 0.78 1</diffuse></material></visual>
+        <visual name="tile_12"><pose>-0.086 -2.72 0.40 0 0 0</pose><geometry><box><size>0.010 0.14 0.21</size></box></geometry><material><ambient>0.90 0.90 0.90 1</ambient><diffuse>0.90 0.90 0.90 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="start_floor_mosaic">
+      <static>true</static>
+      <link name="mosaic">
+        <visual name="mark_01"><pose>-3.72 -3.42 0.007 0 0 0.18</pose><geometry><box><size>0.34 0.075 0.014</size></box></geometry><material><ambient>0.03 0.03 0.03 1</ambient><diffuse>0.03 0.03 0.03 1</diffuse></material></visual>
+        <visual name="mark_02"><pose>-3.38 -3.08 0.007 0 0 -0.32</pose><geometry><box><size>0.14 0.31 0.014</size></box></geometry><material><ambient>0.94 0.94 0.94 1</ambient><diffuse>0.94 0.94 0.94 1</diffuse></material></visual>
+        <visual name="mark_03"><pose>-3.06 -3.68 0.007 0 0 0.52</pose><geometry><box><size>0.29 0.11 0.014</size></box></geometry><material><ambient>0.08 0.08 0.08 1</ambient><diffuse>0.08 0.08 0.08 1</diffuse></material></visual>
+        <visual name="mark_04"><pose>-2.72 -3.24 0.007 0 0 -0.12</pose><geometry><box><size>0.12 0.38 0.014</size></box></geometry><material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+        <visual name="mark_05"><pose>-2.37 -3.82 0.007 0 0 0.36</pose><geometry><box><size>0.42 0.08 0.014</size></box></geometry><material><ambient>0.04 0.04 0.04 1</ambient><diffuse>0.04 0.04 0.04 1</diffuse></material></visual>
+        <visual name="mark_06"><pose>-2.08 -3.35 0.007 0 0 0.72</pose><geometry><box><size>0.18 0.18 0.014</size></box></geometry><material><ambient>0.97 0.97 0.97 1</ambient><diffuse>0.97 0.97 0.97 1</diffuse></material></visual>
+        <visual name="mark_07"><pose>-1.72 -3.05 0.007 0 0 -0.48</pose><geometry><box><size>0.36 0.07 0.014</size></box></geometry><material><ambient>0.06 0.06 0.06 1</ambient><diffuse>0.06 0.06 0.06 1</diffuse></material></visual>
+        <visual name="mark_08"><pose>-1.40 -3.72 0.007 0 0 0.22</pose><geometry><box><size>0.11 0.33 0.014</size></box></geometry><material><ambient>0.90 0.90 0.90 1</ambient><diffuse>0.90 0.90 0.90 1</diffuse></material></visual>
+        <visual name="mark_09"><pose>-1.08 -3.28 0.007 0 0 -0.64</pose><geometry><box><size>0.24 0.13 0.014</size></box></geometry><material><ambient>0.02 0.02 0.02 1</ambient><diffuse>0.02 0.02 0.02 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!--
+      Distributed, asymmetric floor landmarks keep pure visual odometry
+      observable after the rover leaves the feature-rich spawn area.  Every
+      landmark is a differently oriented two-part glyph, so the stereo pair
+      sees corners at useful depths without introducing collision geometry or
+      any non-visual localization signal.
+    -->
+    <model name="distributed_floor_features">
+      <static>true</static>
+      <link name="features">
+        <!-- West room, south-to-north route. -->
+        <visual name="w01a"><pose>-4.85 -2.35 0.007 0 0 0.31</pose><geometry><box><size>0.46 0.07 0.014</size></box></geometry><material><ambient>0.015 0.015 0.015 1</ambient><diffuse>0.015 0.015 0.015 1</diffuse></material></visual>
+        <visual name="w01b"><pose>-4.72 -2.22 0.007 0 0 -0.48</pose><geometry><box><size>0.13 0.25 0.014</size></box></geometry><material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+        <visual name="w02a"><pose>-3.72 -1.88 0.007 0 0 -0.61</pose><geometry><box><size>0.34 0.09 0.014</size></box></geometry><material><ambient>0.94 0.94 0.94 1</ambient><diffuse>0.94 0.94 0.94 1</diffuse></material></visual>
+        <visual name="w02b"><pose>-3.57 -1.98 0.007 0 0 0.22</pose><geometry><box><size>0.11 0.31 0.014</size></box></geometry><material><ambient>0.025 0.025 0.025 1</ambient><diffuse>0.025 0.025 0.025 1</diffuse></material></visual>
+        <visual name="w03a"><pose>-2.58 -2.22 0.007 0 0 0.76</pose><geometry><box><size>0.41 0.06 0.014</size></box></geometry><material><ambient>0.02 0.02 0.02 1</ambient><diffuse>0.02 0.02 0.02 1</diffuse></material></visual>
+        <visual name="w03b"><pose>-2.42 -2.07 0.007 0 0 -0.16</pose><geometry><box><size>0.16 0.18 0.014</size></box></geometry><material><ambient>0.91 0.91 0.91 1</ambient><diffuse>0.91 0.91 0.91 1</diffuse></material></visual>
+        <visual name="w04a"><pose>-1.18 -1.78 0.007 0 0 -0.28</pose><geometry><box><size>0.29 0.11 0.014</size></box></geometry><material><ambient>0.97 0.97 0.97 1</ambient><diffuse>0.97 0.97 0.97 1</diffuse></material></visual>
+        <visual name="w04b"><pose>-1.07 -1.92 0.007 0 0 0.64</pose><geometry><box><size>0.09 0.27 0.014</size></box></geometry><material><ambient>0.035 0.035 0.035 1</ambient><diffuse>0.035 0.035 0.035 1</diffuse></material></visual>
+
+        <visual name="w05a"><pose>-4.92 -0.32 0.007 0 0 -0.73</pose><geometry><box><size>0.38 0.08 0.014</size></box></geometry><material><ambient>0.03 0.03 0.03 1</ambient><diffuse>0.03 0.03 0.03 1</diffuse></material></visual>
+        <visual name="w05b"><pose>-4.76 -0.42 0.007 0 0 0.10</pose><geometry><box><size>0.14 0.22 0.014</size></box></geometry><material><ambient>0.93 0.93 0.93 1</ambient><diffuse>0.93 0.93 0.93 1</diffuse></material></visual>
+        <visual name="w06a"><pose>-3.68 0.58 0.007 0 0 0.18</pose><geometry><box><size>0.48 0.06 0.014</size></box></geometry><material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+        <visual name="w06b"><pose>-3.51 0.72 0.007 0 0 -0.69</pose><geometry><box><size>0.10 0.29 0.014</size></box></geometry><material><ambient>0.01 0.01 0.01 1</ambient><diffuse>0.01 0.01 0.01 1</diffuse></material></visual>
+        <visual name="w07a"><pose>-2.38 -0.38 0.007 0 0 0.49</pose><geometry><box><size>0.31 0.10 0.014</size></box></geometry><material><ambient>0.018 0.018 0.018 1</ambient><diffuse>0.018 0.018 0.018 1</diffuse></material></visual>
+        <visual name="w07b"><pose>-2.22 -0.30 0.007 0 0 -0.42</pose><geometry><box><size>0.12 0.34 0.014</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+        <visual name="w08a"><pose>-1.08 0.76 0.007 0 0 -0.14</pose><geometry><box><size>0.43 0.07 0.014</size></box></geometry><material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+        <visual name="w08b"><pose>-0.92 0.62 0.007 0 0 0.78</pose><geometry><box><size>0.15 0.20 0.014</size></box></geometry><material><ambient>0.028 0.028 0.028 1</ambient><diffuse>0.028 0.028 0.028 1</diffuse></material></visual>
+
+        <visual name="w09a"><pose>-4.86 2.62 0.007 0 0 0.67</pose><geometry><box><size>0.37 0.09 0.014</size></box></geometry><material><ambient>0.97 0.97 0.97 1</ambient><diffuse>0.97 0.97 0.97 1</diffuse></material></visual>
+        <visual name="w09b"><pose>-4.69 2.72 0.007 0 0 -0.24</pose><geometry><box><size>0.10 0.30 0.014</size></box></geometry><material><ambient>0.012 0.012 0.012 1</ambient><diffuse>0.012 0.012 0.012 1</diffuse></material></visual>
+        <visual name="w10a"><pose>-3.82 3.52 0.007 0 0 -0.52</pose><geometry><box><size>0.45 0.06 0.014</size></box></geometry><material><ambient>0.022 0.022 0.022 1</ambient><diffuse>0.022 0.022 0.022 1</diffuse></material></visual>
+        <visual name="w10b"><pose>-3.65 3.38 0.007 0 0 0.34</pose><geometry><box><size>0.13 0.24 0.014</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="w11a"><pose>-2.54 2.92 0.007 0 0 0.27</pose><geometry><box><size>0.33 0.12 0.014</size></box></geometry><material><ambient>0.90 0.90 0.90 1</ambient><diffuse>0.90 0.90 0.90 1</diffuse></material></visual>
+        <visual name="w11b"><pose>-2.37 3.05 0.007 0 0 -0.64</pose><geometry><box><size>0.08 0.28 0.014</size></box></geometry><material><ambient>0.032 0.032 0.032 1</ambient><diffuse>0.032 0.032 0.032 1</diffuse></material></visual>
+        <visual name="w12a"><pose>-1.16 3.78 0.007 0 0 -0.79</pose><geometry><box><size>0.40 0.08 0.014</size></box></geometry><material><ambient>0.016 0.016 0.016 1</ambient><diffuse>0.016 0.016 0.016 1</diffuse></material></visual>
+        <visual name="w12b"><pose>-1.02 3.63 0.007 0 0 0.05</pose><geometry><box><size>0.17 0.21 0.014</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+
+        <!-- East room below the horizontal partition. -->
+        <visual name="e01a"><pose>1.02 -3.72 0.007 0 0 0.41</pose><geometry><box><size>0.36 0.07 0.014</size></box></geometry><material><ambient>0.02 0.02 0.02 1</ambient><diffuse>0.02 0.02 0.02 1</diffuse></material></visual>
+        <visual name="e01b"><pose>1.17 -3.60 0.007 0 0 -0.50</pose><geometry><box><size>0.11 0.26 0.014</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="e02a"><pose>2.18 -2.68 0.007 0 0 -0.24</pose><geometry><box><size>0.47 0.09 0.014</size></box></geometry><material><ambient>0.97 0.97 0.97 1</ambient><diffuse>0.97 0.97 0.97 1</diffuse></material></visual>
+        <visual name="e02b"><pose>2.32 -2.84 0.007 0 0 0.70</pose><geometry><box><size>0.14 0.19 0.014</size></box></geometry><material><ambient>0.014 0.014 0.014 1</ambient><diffuse>0.014 0.014 0.014 1</diffuse></material></visual>
+        <visual name="e03a"><pose>3.42 -3.61 0.007 0 0 0.74</pose><geometry><box><size>0.30 0.11 0.014</size></box></geometry><material><ambient>0.024 0.024 0.024 1</ambient><diffuse>0.024 0.024 0.024 1</diffuse></material></visual>
+        <visual name="e03b"><pose>3.58 -3.50 0.007 0 0 -0.13</pose><geometry><box><size>0.09 0.32 0.014</size></box></geometry><material><ambient>0.93 0.93 0.93 1</ambient><diffuse>0.93 0.93 0.93 1</diffuse></material></visual>
+        <visual name="e04a"><pose>4.86 -2.92 0.007 0 0 -0.45</pose><geometry><box><size>0.42 0.06 0.014</size></box></geometry><material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+        <visual name="e04b"><pose>5.02 -3.04 0.007 0 0 0.39</pose><geometry><box><size>0.16 0.23 0.014</size></box></geometry><material><ambient>0.03 0.03 0.03 1</ambient><diffuse>0.03 0.03 0.03 1</diffuse></material></visual>
+
+        <visual name="e05a"><pose>1.08 -1.48 0.007 0 0 -0.66</pose><geometry><box><size>0.35 0.08 0.014</size></box></geometry><material><ambient>0.91 0.91 0.91 1</ambient><diffuse>0.91 0.91 0.91 1</diffuse></material></visual>
+        <visual name="e05b"><pose>1.24 -1.58 0.007 0 0 0.19</pose><geometry><box><size>0.12 0.29 0.014</size></box></geometry><material><ambient>0.018 0.018 0.018 1</ambient><diffuse>0.018 0.018 0.018 1</diffuse></material></visual>
+        <visual name="e06a"><pose>2.35 -0.72 0.007 0 0 0.11</pose><geometry><box><size>0.44 0.10 0.014</size></box></geometry><material><ambient>0.028 0.028 0.028 1</ambient><diffuse>0.028 0.028 0.028 1</diffuse></material></visual>
+        <visual name="e06b"><pose>2.51 -0.58 0.007 0 0 -0.76</pose><geometry><box><size>0.10 0.20 0.014</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+        <visual name="e07a"><pose>3.72 -1.43 0.007 0 0 0.55</pose><geometry><box><size>0.39 0.07 0.014</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="e07b"><pose>3.86 -1.29 0.007 0 0 -0.34</pose><geometry><box><size>0.15 0.27 0.014</size></box></geometry><material><ambient>0.012 0.012 0.012 1</ambient><diffuse>0.012 0.012 0.012 1</diffuse></material></visual>
+        <visual name="e08a"><pose>5.02 -0.48 0.007 0 0 -0.08</pose><geometry><box><size>0.32 0.12 0.014</size></box></geometry><material><ambient>0.021 0.021 0.021 1</ambient><diffuse>0.021 0.021 0.021 1</diffuse></material></visual>
+        <visual name="e08b"><pose>5.19 -0.62 0.007 0 0 0.80</pose><geometry><box><size>0.09 0.25 0.014</size></box></geometry><material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+
+        <!-- East room above the partition. -->
+        <visual name="n01a"><pose>0.92 2.35 0.007 0 0 0.63</pose><geometry><box><size>0.46 0.08 0.014</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+        <visual name="n01b"><pose>1.07 2.49 0.007 0 0 -0.29</pose><geometry><box><size>0.12 0.22 0.014</size></box></geometry><material><ambient>0.016 0.016 0.016 1</ambient><diffuse>0.016 0.016 0.016 1</diffuse></material></visual>
+        <visual name="n02a"><pose>2.18 2.82 0.007 0 0 -0.37</pose><geometry><box><size>0.34 0.10 0.014</size></box></geometry><material><ambient>0.02 0.02 0.02 1</ambient><diffuse>0.02 0.02 0.02 1</diffuse></material></visual>
+        <visual name="n02b"><pose>2.35 2.70 0.007 0 0 0.51</pose><geometry><box><size>0.16 0.31 0.014</size></box></geometry><material><ambient>0.94 0.94 0.94 1</ambient><diffuse>0.94 0.94 0.94 1</diffuse></material></visual>
+        <visual name="n03a"><pose>3.42 2.22 0.007 0 0 0.16</pose><geometry><box><size>0.41 0.06 0.014</size></box></geometry><material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+        <visual name="n03b"><pose>3.57 2.36 0.007 0 0 -0.71</pose><geometry><box><size>0.10 0.28 0.014</size></box></geometry><material><ambient>0.026 0.026 0.026 1</ambient><diffuse>0.026 0.026 0.026 1</diffuse></material></visual>
+        <visual name="n04a"><pose>5.02 2.63 0.007 0 0 -0.58</pose><geometry><box><size>0.37 0.09 0.014</size></box></geometry><material><ambient>0.018 0.018 0.018 1</ambient><diffuse>0.018 0.018 0.018 1</diffuse></material></visual>
+        <visual name="n04b"><pose>5.18 2.53 0.007 0 0 0.25</pose><geometry><box><size>0.14 0.24 0.014</size></box></geometry><material><ambient>0.97 0.97 0.97 1</ambient><diffuse>0.97 0.97 0.97 1</diffuse></material></visual>
+
+        <visual name="n05a"><pose>1.18 4.06 0.007 0 0 -0.20</pose><geometry><box><size>0.43 0.07 0.014</size></box></geometry><material><ambient>0.013 0.013 0.013 1</ambient><diffuse>0.013 0.013 0.013 1</diffuse></material></visual>
+        <visual name="n05b"><pose>1.34 4.19 0.007 0 0 0.68</pose><geometry><box><size>0.11 0.30 0.014</size></box></geometry><material><ambient>0.93 0.93 0.93 1</ambient><diffuse>0.93 0.93 0.93 1</diffuse></material></visual>
+        <visual name="n06a"><pose>2.72 4.12 0.007 0 0 0.79</pose><geometry><box><size>0.31 0.11 0.014</size></box></geometry><material><ambient>0.95 0.95 0.95 1</ambient><diffuse>0.95 0.95 0.95 1</diffuse></material></visual>
+        <visual name="n06b"><pose>2.87 4.00 0.007 0 0 -0.09</pose><geometry><box><size>0.15 0.21 0.014</size></box></geometry><material><ambient>0.022 0.022 0.022 1</ambient><diffuse>0.022 0.022 0.022 1</diffuse></material></visual>
+        <visual name="n07a"><pose>4.02 4.25 0.007 0 0 -0.47</pose><geometry><box><size>0.48 0.06 0.014</size></box></geometry><material><ambient>0.03 0.03 0.03 1</ambient><diffuse>0.03 0.03 0.03 1</diffuse></material></visual>
+        <visual name="n07b"><pose>4.19 4.11 0.007 0 0 0.42</pose><geometry><box><size>0.09 0.27 0.014</size></box></geometry><material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material></visual>
+        <visual name="n08a"><pose>5.25 3.72 0.007 0 0 0.33</pose><geometry><box><size>0.36 0.10 0.014</size></box></geometry><material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+        <visual name="n08b"><pose>5.39 3.86 0.007 0 0 -0.56</pose><geometry><box><size>0.13 0.26 0.014</size></box></geometry><material><ambient>0.015 0.015 0.015 1</ambient><diffuse>0.015 0.015 0.015 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="west_table">
+      <static>true</static><pose>-2.7 2.1 0 0 0 0</pose>
+      <link name="table">
+        <collision name="top_collision"><pose>0 0 0.72 0 0 0</pose><geometry><box><size>1.25 0.72 0.08</size></box></geometry></collision>
+        <visual name="top_visual"><pose>0 0 0.72 0 0 0</pose><geometry><box><size>1.25 0.72 0.08</size></box></geometry><material><ambient>0.42 0.19 0.08 1</ambient><diffuse>0.42 0.19 0.08 1</diffuse></material></visual>
+        <collision name="leg1"><pose>-0.5 -0.25 0.35 0 0 0</pose><geometry><box><size>0.09 0.09 0.70</size></box></geometry></collision>
+        <visual name="leg1v"><pose>-0.5 -0.25 0.35 0 0 0</pose><geometry><box><size>0.09 0.09 0.70</size></box></geometry><material><ambient>0.18 0.08 0.03 1</ambient><diffuse>0.18 0.08 0.03 1</diffuse></material></visual>
+        <collision name="leg2"><pose>0.5 -0.25 0.35 0 0 0</pose><geometry><box><size>0.09 0.09 0.70</size></box></geometry></collision>
+        <visual name="leg2v"><pose>0.5 -0.25 0.35 0 0 0</pose><geometry><box><size>0.09 0.09 0.70</size></box></geometry><material><ambient>0.18 0.08 0.03 1</ambient><diffuse>0.18 0.08 0.03 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="east_cabinet">
+      <static>true</static><pose>4.7 3.8 0.55 0 0 0.15</pose>
+      <link name="cabinet">
+        <collision name="collision"><geometry><box><size>1.1 0.45 1.1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.1 0.45 1.1</size></box></geometry><material><ambient>0.16 0.36 0.48 1</ambient><diffuse>0.16 0.36 0.48 1</diffuse></material></visual>
+        <visual name="handle"><pose>0 -0.235 0.15 0 0 0</pose><geometry><box><size>0.28 0.025 0.04</size></box></geometry><material><ambient>0.02 0.02 0.02 1</ambient><diffuse>0.02 0.02 0.02 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="low_obstacle">
+      <static>true</static><pose>2.0 0.15 0.12 0 0 0.45</pose>
+      <link name="box">
+        <collision name="collision"><geometry><box><size>0.55 0.38 0.24</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.55 0.38 0.24</size></box></geometry><material><ambient>0.75 0.17 0.05 1</ambient><diffuse>0.75 0.17 0.05 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- Velocity-controlled obstacle. The ROS controller moves it across the east corridor. -->
+    <model name="moving_obstacle">
+      <pose>3.4 -2.1 0.28 0 0 0</pose>
+      <link name="body">
+        <inertial><mass>4.0</mass><inertia><ixx>0.15</ixx><ixy>0</ixy><ixz>0</ixz><iyy>0.15</iyy><iyz>0</iyz><izz>0.15</izz></inertia></inertial>
+        <collision name="collision"><geometry><box><size>0.45 0.45 0.56</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.45 0.45 0.56</size></box></geometry><material><ambient>0.82 0.70 0.04 1</ambient><diffuse>0.82 0.70 0.04 1</diffuse></material></visual>
+      </link>
+      <plugin filename="ignition-gazebo-velocity-control-system" name="ignition::gazebo::systems::VelocityControl">
+        <topic>/model/moving_obstacle/cmd_vel</topic>
+      </plugin>
+    </model>
+  </world>
+</sdf>

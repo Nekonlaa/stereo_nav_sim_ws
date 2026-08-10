@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="stereo_rover">
+  <xacro:property name="wheel_radius" value="0.08"/>
+  <xacro:property name="wheel_width" value="0.04"/>
+  <xacro:property name="wheel_y" value="0.19"/>
+
+  <material name="chassis_blue">
+    <color rgba="0.08 0.24 0.55 1.0"/>
+  </material>
+  <material name="wheel_black">
+    <color rgba="0.03 0.03 0.03 1.0"/>
+  </material>
+  <material name="camera_gray">
+    <color rgba="0.18 0.18 0.20 1.0"/>
+  </material>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0.15"/>
+      <mass value="12.0"/>
+      <inertia ixx="0.130" ixy="0" ixz="0" iyy="0.240" iyz="0" izz="0.310"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.15"/>
+      <geometry><box size="0.45 0.34 0.12"/></geometry>
+      <material name="chassis_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.15"/>
+      <geometry><box size="0.45 0.34 0.12"/></geometry>
+    </collision>
+  </link>
+
+  <xacro:macro name="wheel" params="name y">
+    <link name="${name}_wheel_link">
+      <inertial>
+        <mass value="0.6"/>
+        <inertia ixx="0.0021" ixy="0" ixz="0" iyy="0.0038" iyz="0" izz="0.0021"/>
+      </inertial>
+      <visual>
+        <origin rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="wheel_black"/>
+      </visual>
+      <collision>
+        <origin rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}_wheel_link"/>
+      <origin xyz="0.05 ${y} ${wheel_radius}"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:wheel name="left" y="${wheel_y}"/>
+  <xacro:wheel name="right" y="${-wheel_y}"/>
+
+  <link name="rear_caster_link">
+    <visual>
+      <geometry><sphere radius="0.04"/></geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision><geometry><sphere radius="0.04"/></geometry></collision>
+  </link>
+  <joint name="rear_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear_caster_link"/>
+    <origin xyz="-0.17 0 0.04"/>
+  </joint>
+
+  <link name="camera_rig_link">
+    <visual>
+      <geometry><box size="0.06 0.18 0.055"/></geometry>
+      <material name="camera_gray"/>
+    </visual>
+  </link>
+  <joint name="camera_rig_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_rig_link"/>
+    <origin xyz="0.16 0 0.42" rpy="0 0.1396263402 0"/>
+  </joint>
+
+  <xacro:macro name="camera_frames" params="side y">
+    <link name="stereo_${side}_frame"/>
+    <joint name="stereo_${side}_joint" type="fixed">
+      <parent link="camera_rig_link"/>
+      <child link="stereo_${side}_frame"/>
+      <origin xyz="0 ${y} 0"/>
+    </joint>
+
+    <link name="stereo_${side}_optical_frame"/>
+    <joint name="stereo_${side}_optical_joint" type="fixed">
+      <parent link="stereo_${side}_frame"/>
+      <child link="stereo_${side}_optical_frame"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:camera_frames side="left" y="0.06"/>
+  <xacro:camera_frames side="right" y="-0.06"/>
+</robot>
